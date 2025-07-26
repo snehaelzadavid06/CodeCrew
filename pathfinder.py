@@ -107,6 +107,25 @@ def get_room_coordinates(room_name):
 def get_all_room_names():
     return list(room_coords.keys())
 
+def find_closest_room_match(input_text):
+    """
+    Find the closest matching room name for the given input text.
+    Returns None if no close match is found.
+    """
+    input_text = input_text.lower().strip()
+    
+    # Direct match
+    if input_text in room_coords:
+        return input_text
+    
+    # Check if input is contained within any room name
+    for room_name in room_coords:
+        if input_text in room_name or room_name in input_text:
+            return room_name
+    
+    # If no match found
+    return None
+
 # --- Variables to be exposed for import by app.py ---
 HOSPITAL_GRID_DATA = walkability
 ROOM_BLOCKS_DATA = room_blocks
