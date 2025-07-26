@@ -45,7 +45,7 @@
     <div id="controls">
         <div class="controls-row">
             <div class="input-group">
-                <label class="input-label" for="currentLocation">Current Location:</label>
+                <label class="input-label" id="currentLocation-label" for="currentLocation">Current Location</label>
                 <div class="input-container">
                     <input type="text" id="currentLocation" list="currentLocationList" autocomplete="off">
                     <button class="voice-btn" onclick="startVoiceInput('currentLocation')" title="Voice input for current location">
@@ -59,7 +59,7 @@
             </div>
 
             <div class="input-group">
-                <label class="input-label" for="destination">Destination:</label>
+                <label class="input-label" id="destination-label" for="destination">Destination</label>
                 <div class="input-container">
                     <input type="text" id="destination" list="destinationList" autocomplete="off">
                     <button class="voice-btn" onclick="startVoiceInput('destination')" title="Voice input for destination">
