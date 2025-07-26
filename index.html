@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Walkability Map</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 25px;
+        }
+        #controls {
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        label {
+            font-weight: bold;
+            color: #444;
+        }
+        select, button {
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        select:focus, button:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            flex-shrink: 0;
+        }
+        button:hover {
+            background-color: #0056b3;
+            transform: translateY(-1px);
+        }
+        button:active {
+            background-color: #004085;
+            transform: translateY(0);
+        }
+        #floorPlanCanvas {
+            border: 1px solid #ccc;
+            background-image: url('image_363605.png'); /* Your floorplan image as background */
+            background-size: 100% 100%; /* Stretch image to fit canvas exactly */
+            background-repeat: no-repeat;
+            background-position: center;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+        }
+        .message-box {
+            margin-top: 15px;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 1.1em;
+            display: none;
+            animation: fadeIn 0.5s forwards;
+        }
+        .message-box.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .message-box.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; display: block; }
+        }
+        .distance-info {
+           margin: 10px 0;
+           padding: 10px;
+           background-color: #f0f0f0;
+           border-radius: 4px;
+           font-size: 16px;
+           text-align: center;
+}
+    </style>
+</head>
+<body>
+    <h1>Hospital Walkability Map</h1>
+
+    <div id="controls">
+        <label for="currentLocation">Current Location:</label>
+        <select id="currentLocation"></select>
+
+        <label for="destination">Destination:</label>
+        <select id="destination"></select>
+
+        <button onclick="findAndDrawPath()">Show Path</button>
+        <button onclick="clearPath()">Clear Path</button>
+    </div>
+
+    <div id="messageBox" class="message-box"></div>
+    <div id="distanceInfo" class="distance-info"></div>
+
+    <canvas id="floorPlanCanvas" width="800" height="600"></canvas>
+    
+    <script>
+        // 1. Get references to HTML elements
+        const canvas = document.getElementById('floorPlanCanvas');
+        const ctx = canvas.getContext('2d');
+        const currentLocationSelect = document.getElementById('currentLocation');
+        const destinationSelect = document.getElementById('destination');
+        const messageBox = document.getElementById('messageBox');
+
+        // 2. Define the URL of your backend API
+        const API_BASE_URL = 'http://127.0.0.1:5000';
+
+        // 3. Grid Dimensions (from your walkability matrix, which is 60x60)
+        const GRID_SIZE_X = 60; // Total columns (horizontal)
+        const GRID_SIZE_Y = 60; // Total rows (vertical)
+
+        // 4. Calculate cell size in pixels on the canvas
+        const CELL_SIZE_X = canvas.width / GRID_SIZE_X;
+        const CELL_SIZE_Y = canvas.height / GRID_SIZE_Y;
+
+        // 5. Array to store room block data for drawing (NOT USED FOR DRAWING ROOMS ANYMORE)
+        // Kept for consistency if needed for other data, but drawRoomBlocks() is removed.
+        let roomBlocksData = {}; 
+
+        // 6. Function to convert grid coordinates (row, col) to canvas pixel coordinates (x, y)
+        function gridToCanvas(gridCol, gridRow) {
+            const canvasX = gridCol * CELL_SIZE_X + CELL_SIZE_X / 2;
+            const canvasY = gridRow * CELL_SIZE_Y + CELL_SIZE_Y / 2;
+            return { x: canvasX, y: canvasY };
+        }
+
+        // 7. Function to display messages to the user
+        function showMessage(message, type) {
+            messageBox.textContent = message;
+            messageBox.className = `message-box ${type}`;
+            messageBox.style.display = 'block';
+            setTimeout(() => {
+                messageBox.style.display = 'none';
+                messageBox.className = 'message-box';
+            }, 5000);
+        }
+
+        // 8. REMOVED: Function to draw room blocks (as per your request)
+        // This function is no longer needed because the rooms are on your background image.
+        /*
+        function drawRoomBlocks(roomBlocksData) {
+            ctx.fillStyle = 'rgba(173, 216, 230, 0.5)'; // Light blue with transparency
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 1;
+            ctx.font = '6px Arial';
+
+            for (const roomName in roomBlocksData) {
+                const [row_start, col_start, height, width] = roomBlocksData[roomName];
+
+                const rectX = col_start * CELL_SIZE_X;
+                const rectY = row_start * CELL_SIZE_Y;
+                const rectWidth = width * CELL_SIZE_X;
+                const rectHeight = height * CELL_SIZE_Y;
+
+                ctx.fillRect(rectX, rectY, rectWidth, rectHeight);
+                ctx.strokeRect(rectX, rectY, rectWidth, rectHeight);
+
+                const displayRoomName = roomName.replace(/\n/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                ctx.fillStyle = 'black';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(displayRoomName, rectX + rectWidth / 2, rectY + rectHeight / 2);
+            }
+        }
+        */
+
+        // 9. Function to populate dropdowns (no change here)
+        async function initializeMap() {
+            try {
+                // Fetch room names
+                const roomsResponse = await fetch(`${API_BASE_URL}/get_rooms`);
+                if (!roomsResponse.ok) throw new Error(`HTTP error! status: ${roomsResponse.status}`);
+                const rooms = await roomsResponse.json();
+
+                currentLocationSelect.innerHTML = '<option value="">-- Select Current Location --</option>';
+                destinationSelect.innerHTML = '<option value="">-- Select Destination --</option>';
+                rooms.forEach(room => {
+                    const formattedRoomName = room.replace(/\b\w/g, c => c.toUpperCase());
+                    const option1 = document.createElement('option');
+                    option1.value = room;
+                    option1.textContent = formattedRoomName;
+                    currentLocationSelect.appendChild(option1);
+
+                    const option2 = document.createElement('option');
+                    option2.value = room;
+                    option2.textContent = formattedRoomName;
+                    destinationSelect.appendChild(option2);
+                });
+
+                // Fetch room block data (still fetched, but not used for drawing rooms)
+                // This call is now primarily to ensure the backend connection is stable.
+                const roomBlocksResponse = await fetch(`${API_BASE_URL}/get_room_blocks`);
+                if (!roomBlocksResponse.ok) throw new Error(`HTTP error! status: ${roomBlocksResponse.status}`);
+                roomBlocksData = await roomBlocksResponse.json(); // Data is stored, but drawRoomBlocks() is removed.
+
+                // Clear canvas (no need to redraw room blocks here anymore as they are part of the background image)
+                ctx.clearRect(0, 0, canvas.width, canvas.height); 
+
+                showMessage('Map loaded and rooms populated successfully!', 'success');
+
+            } catch (error) {
+                console.error('Initialization Error:', error);
+                showMessage(`Failed to initialize map: ${error.message}. Please check backend server.`, 'error');
+            }
+        }
+
+        // 10. Function to find and draw the path
+        async function findAndDrawPath() {
+            const currentLocation = currentLocationSelect.value;
+            const destination = destinationSelect.value;
+
+            if (!currentLocation || !destination) {
+                showMessage('Please select both a current location and a destination.', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/find_path`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        currentLocation: currentLocation,
+                        destination: destination
+                    }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const path = data.path;
+                const startCoords = data.start_coords;
+                const endCoords = data.end_coords;
+
+                // Clear only the canvas for the new path (background image remains)
+                ctx.clearRect(0, 0, canvas.width, canvas.height); 
+
+                if (path && path.length > 0) {
+                    drawPath(path, startCoords, endCoords);
+                    showMessage(`Path found from ${currentLocation.toUpperCase()} to ${destination.toUpperCase()}.`, 'success');
+                } else {
+                    showMessage('No path found between the selected locations.', 'error');
+                }
+
+            } catch (error) {
+                console.error('Error finding path:', error);
+                showMessage(`Failed to find path: ${error.message}`, 'error');
+            }
+        }
+
+        // 11. Function to clear the canvas (remove drawn path)
+        // Now only clears the canvas, relying on the background image for the map.
+        function clearPath() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clears entire canvas area
+            showMessage('Path cleared.', 'success');
+        }
+
+        // 12. Function to draw the path, start, and end markers (no change here)
+        function drawPath(path, startCoords, endCoords) {
+            // Draw the path line
+            ctx.beginPath();
+            ctx.strokeStyle = '#007bff';
+            ctx.lineWidth = 4;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            const startPointCanvas = gridToCanvas(path[0][1], path[0][0]);
+            ctx.moveTo(startPointCanvas.x, startPointCanvas.y);
+
+            for (let i = 1; i < path.length; i++) {
+                const point = path[i];
+                const canvasPoint = gridToCanvas(point[1], point[0]);
+                ctx.lineTo(canvasPoint.x, canvasPoint.y);
+            }
+            ctx.stroke();
+
+            // Draw start marker
+            const startCanvasPos = gridToCanvas(startCoords[1], startCoords[0]);
+            ctx.fillStyle = 'green';
+            ctx.beginPath();
+            ctx.arc(startCanvasPos.x, startCanvasPos.y, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw end marker
+            const endCanvasPos = gridToCanvas(endCoords[1], endCoords[0]);
+            ctx.fillStyle = 'red';
+            ctx.beginPath();
+            ctx.arc(endCanvasPos.x, endCanvasPos.y, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        // --- Initial call when the page is fully loaded ---
+        window.onload = initializeMap;
+    </script>
+</body>
+</html>
