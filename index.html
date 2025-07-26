@@ -5,6 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hospital Walkability Map</title>
     <style>
+        .voice-btn {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .voice-btn.recording {
+            background-color: #f44336;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
         body {
             font-family: sans-serif;
             display: flex;
@@ -26,6 +48,8 @@
             background-color: #ffffff;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             display: flex;
+            flex-direction: column;
+            gap: 10px;
             gap: 20px;
             align-items: center;
             flex-wrap: wrap;
@@ -35,18 +59,23 @@
             font-weight: bold;
             color: #444;
         }
-        select, button {
+        input, button {
             padding: 10px 15px;
             border-radius: 6px;
             border: 1px solid #ccc;
             font-size: 16px;
-            cursor: pointer;
             transition: all 0.2s ease;
         }
-        select:focus, button:focus {
+        input {
+            width: 200px;
+        }
+        input:focus, button:focus {
             outline: none;
             border-color: #007bff;
             box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+        }
+        button {
+            cursor: pointer;
         }
         button {
             background-color: #007bff;
@@ -64,7 +93,7 @@
         }
         #floorPlanCanvas {
             border: 1px solid #ccc;
-            background-image: url('image_363605.png'); /* Your floorplan image as background */
+            background-image: url('c.png'); /* Your floorplan image as background */
             background-size: 100% 100%; /* Stretch image to fit canvas exactly */
             background-repeat: no-repeat;
             background-position: center;
@@ -106,14 +135,28 @@
     <h1>Hospital Walkability Map</h1>
 
     <div id="controls">
-        <label for="currentLocation">Current Location:</label>
-        <select id="currentLocation"></select>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div>
+                <label for="currentLocation">Current Location:</label>
+                <input type="text" id="currentLocation" list="currentLocationList" autocomplete="off">
+                <datalist id="currentLocationList"></datalist>
+            </div>
+            <button class="voice-btn" onclick="startVoiceInput('currentLocation')" title="Voice input for current location">🎤</button>
+        </div>
 
-        <label for="destination">Destination:</label>
-        <select id="destination"></select>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div>
+                <label for="destination">Destination:</label>
+                <input type="text" id="destination" list="destinationList" autocomplete="off">
+                <datalist id="destinationList"></datalist>
+            </div>
+            <button class="voice-btn" onclick="startVoiceInput('destination')" title="Voice input for destination">🎤</button>
+        </div>
 
-        <button onclick="findAndDrawPath()">Show Path</button>
-        <button onclick="clearPath()">Clear Path</button>
+        <div>
+            <button onclick="findAndDrawPath()">Show Path</button>
+            <button onclick="clearPath()">Clear Path</button>
+        </div>
     </div>
 
     <div id="messageBox" class="message-box"></div>
@@ -192,27 +235,47 @@
         */
 
         // 9. Function to populate dropdowns (no change here)
+        // Store all room names globally
+        let allRooms = [];
+
+        // Function to filter and update datalist options
+        function updateDatalistOptions(input, datalist) {
+            const value = input.value.toLowerCase();
+            const filteredRooms = allRooms.filter(room => 
+                room.toLowerCase().includes(value)
+            );
+            
+            datalist.innerHTML = '';
+            filteredRooms.forEach(room => {
+                const option = document.createElement('option');
+                option.value = room.replace(/\b\w/g, c => c.toUpperCase());
+                datalist.appendChild(option);
+            });
+        }
+
         async function initializeMap() {
             try {
                 // Fetch room names
                 const roomsResponse = await fetch(`${API_BASE_URL}/get_rooms`);
                 if (!roomsResponse.ok) throw new Error(`HTTP error! status: ${roomsResponse.status}`);
-                const rooms = await roomsResponse.json();
+                allRooms = await roomsResponse.json();
 
-                currentLocationSelect.innerHTML = '<option value="">-- Select Current Location --</option>';
-                destinationSelect.innerHTML = '<option value="">-- Select Destination --</option>';
-                rooms.forEach(room => {
-                    const formattedRoomName = room.replace(/\b\w/g, c => c.toUpperCase());
-                    const option1 = document.createElement('option');
-                    option1.value = room;
-                    option1.textContent = formattedRoomName;
-                    currentLocationSelect.appendChild(option1);
+                // Set up event listeners for real-time filtering
+                const currentLocationInput = document.getElementById('currentLocation');
+                const destinationInput = document.getElementById('destination');
+                const currentLocationList = document.getElementById('currentLocationList');
+                const destinationList = document.getElementById('destinationList');
 
-                    const option2 = document.createElement('option');
-                    option2.value = room;
-                    option2.textContent = formattedRoomName;
-                    destinationSelect.appendChild(option2);
-                });
+                currentLocationInput.addEventListener('input', () => 
+                    updateDatalistOptions(currentLocationInput, currentLocationList)
+                );
+                destinationInput.addEventListener('input', () => 
+                    updateDatalistOptions(destinationInput, destinationList)
+                );
+
+                // Initialize datalists with all rooms
+                updateDatalistOptions(currentLocationInput, currentLocationList);
+                updateDatalistOptions(destinationInput, destinationList);
 
                 // Fetch room block data (still fetched, but not used for drawing rooms)
                 // This call is now primarily to ensure the backend connection is stable.
@@ -233,8 +296,8 @@
 
         // 10. Function to find and draw the path
         async function findAndDrawPath() {
-            const currentLocation = currentLocationSelect.value;
-            const destination = destinationSelect.value;
+            const currentLocation = document.getElementById('currentLocation').value.toLowerCase();
+            const destination = document.getElementById('destination').value.toLowerCase();
 
             if (!currentLocation || !destination) {
                 showMessage('Please select both a current location and a destination.', 'error');
@@ -322,6 +385,103 @@
             ctx.strokeStyle = 'white';
             ctx.lineWidth = 2;
             ctx.stroke();
+        }
+
+        // --- Voice Recognition Code ---
+        function startVoiceInput(inputId) {
+            // Check if browser supports speech recognition
+            if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+                showMessage('Speech recognition is not supported in your browser. Please use Chrome or Edge.', 'error');
+                return;
+            }
+
+            const button = event.target;
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            
+            button.classList.add('recording');
+            button.textContent = '⏹️';
+            
+            recognition.lang = 'en-US';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 3;  // Get multiple alternatives for better matching
+
+            let speechDetected = false;
+            let recognitionEnded = false;
+
+            recognition.onresult = (event) => {
+                if (recognitionEnded) return; // Prevent duplicate processing
+                
+                speechDetected = true;
+                recognitionEnded = true;
+                const results = event.results[0];
+                let matchFound = false;
+
+                // Try each alternative result
+                for (let i = 0; i < results.length && !matchFound; i++) {
+                    const text = results[i].transcript.toLowerCase();
+                    console.log(`Attempt ${i + 1} recognized text:`, text);
+                    
+                    // Try to find a matching room
+                    for (const room of allRooms) {
+                        if (text.includes(room.toLowerCase())) {
+                            document.getElementById(inputId).value = room;
+                            showMessage(`Recognized: ${room}`, 'success');
+                            matchFound = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!matchFound) {
+                    showMessage(`Could not find a matching room in: "${results[0].transcript}". Please try again.`, 'error');
+                }
+
+                // Ensure recognition is stopped
+                try {
+                    recognition.abort(); // Force stop the recognition
+                } catch (e) {
+                    console.log('Recognition already stopped');
+                }
+            };
+
+            recognition.onerror = (event) => {
+                if (recognitionEnded) return; // Skip error handling if we're done
+                
+                console.error('Speech recognition error:', event.error);
+                if (!speechDetected && !recognitionEnded) {
+                    if (event.error === 'not-allowed') {
+                        showMessage('Microphone access denied. Please allow microphone access and try again.', 'error');
+                    } else if (event.error === 'no-speech' && !speechDetected) {
+                        showMessage('No speech was detected. Please try again.', 'error');
+                    }
+                }
+                recognitionEnded = true;
+                button.classList.remove('recording');
+                button.textContent = '🎤';
+            };
+
+            recognition.onend = () => {
+                if (!recognitionEnded) {
+                    recognitionEnded = true;
+                    if (!speechDetected) {
+                        showMessage('No speech was detected. Please try again.', 'error');
+                    }
+                }
+                button.classList.remove('recording');
+                button.textContent = '🎤';
+            };
+
+            // Start recognition with error handling
+            try {
+                recognition.start();
+                showMessage('Listening... Please speak the room name.', 'success');
+            } catch (error) {
+                console.error('Error starting speech recognition:', error);
+                showMessage('Could not start speech recognition. Please try again.', 'error');
+                button.classList.remove('recording');
+                button.textContent = '🎤';
+            }
         }
 
         // --- Initial call when the page is fully loaded ---

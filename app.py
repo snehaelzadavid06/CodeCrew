@@ -3,10 +3,20 @@
 # 1. Import necessary modules
 from flask import Flask, request, jsonify # Flask: the main web framework; request: to get data from frontend; jsonify: to send data as JSON
 from flask_cors import CORS             # Flask-CORS: handles cross-origin requests (allows your browser to talk to your server)
+import speech_recognition as sr         # For speech recognition
+import base64                          # For handling audio data
+import io                              # For handling byte streams
+# 1. Import necessary modules
+from flask import Flask, request, jsonify # Flask: the main web framework; request: to get data from frontend; jsonify: to send data as JSON
+from flask_cors import CORS             # Flask-CORS: handles cross-origin requests (allows your browser to talk to your server)
+import speech_recognition as sr         # For speech recognition
+import tempfile
+import os
 from pathfinder import ( # Import specific functions and data from your 'pathfinder.py' file
     astar,                 # Your A* pathfinding algorithm
     get_room_coordinates,  # Function to get coordinates from a room name
     get_all_room_names,    # Function to get a list of all room names
+    find_closest_room_match,  # Function to find closest matching room from speech
     HOSPITAL_GRID_DATA,    # The loaded walkability matrix (your grid)
     ROOM_BLOCKS_DATA       # The room block definitions for drawing
 )
@@ -38,7 +48,40 @@ def get_room_blocks():
     # ROOM_BLOCKS_DATA is already a dictionary that's suitable for JSON.
     return jsonify(ROOM_BLOCKS_DATA)
 
-# 4.3. Route to find a path between two locations
+# 4.3 Route to handle voice input and convert to text
+@app.route('/process_voice', methods=['POST'])
+def process_voice():
+    try:
+        # Get the audio data from the request
+        audio_data = request.files.get('audio')
+        if not audio_data:
+            return jsonify({"error": "No audio data received"}), 400
+
+        # Initialize the recognizer
+        recognizer = sr.Recognizer()
+        
+        # Convert the audio file to audio data
+        with sr.AudioFile(audio_data) as source:
+            audio = recognizer.record(source)
+        
+        # Attempt to recognize the speech
+        try:
+            text = recognizer.recognize_google(audio)
+            # Find the closest matching room name
+            room_name = find_closest_room_match(text)
+            if room_name:
+                return jsonify({"success": True, "text": text, "room": room_name})
+            else:
+                return jsonify({"success": True, "text": text, "error": "No matching room found"})
+        except sr.UnknownValueError:
+            return jsonify({"error": "Could not understand audio"}), 400
+        except sr.RequestError:
+            return jsonify({"error": "Could not connect to speech recognition service"}), 500
+            
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# 4.4. Route to find a path between two locations
 # When your web browser sends a POST request (because it's sending data) to http://127.0.0.1:5000/find_path, this function runs.
 @app.route('/find_path', methods=['POST'])
 def find_path():
