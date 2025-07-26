@@ -108,8 +108,30 @@
 .input-group {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 15px;
     position: relative;
+}
+
+.input-label {
+    min-width: 150px;
+    padding: 10px 15px;
+    font-weight: 600;
+    color: white;
+    border-radius: 6px;
+    text-align: center;
+    text-transform: uppercase;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+}
+
+.input-label[for="currentLocation"] {
+    background-color: #28a745;
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+}
+
+.input-label[for="destination"] {
+    background-color: #dc3545;
+    box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2);
 }
 
 .input-label {
