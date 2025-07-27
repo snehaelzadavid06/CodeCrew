@@ -1,14 +1,8 @@
+# render.yaml
+
 services:
   - type: web
-    name: your-app-name
-    env: python
-    buildCommand: |
-      apt-get update
-      apt-get install -y portaudio19-dev python3-dev pkg-config
-      pip install --upgrade pip
-      pip install wheel
-      pip install -r requirements.txt
-    startCommand: python app.py
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.10
+    name: hospital-backend
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
