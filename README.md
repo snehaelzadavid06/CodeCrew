@@ -7,10 +7,12 @@ S Priscilla Angeline
 Tania Sophy Jose
 
 Project: QRGo - Intuitive Indoor Navigation
-     Problem: Navigating large indoor spaces (hospitals, campuses) is confusing without GPS, often relying on costly hardware (beacons) or inconvenient app installations.
-     Our Solution:QRGo provides an accurate, app-free, browser-based indoor navigation system.
-     How it Works: It uses a grid-based floorplan and the A* pathfinding algorithm for precise route calculation and visual guidance.
-     Key Benefits: Requires no GPS, Wi-Fi, Bluetooth, or expensive hardware, and is instantly accessible via a simple QR code scan.
+
+Problem:Navigating large indoor spaces (hospitals, campuses) is confusing without GPS, often relying on costly hardware (beacons) or inconvenient 
+app installations.
+Our Solution:QRGo provides an accurate, app-free, browser-based indoor navigation system.
+How it Works:It uses a grid-based floorplan and the A* pathfinding algorithm for precise route calculation and visual guidance.
+Key Benefits:Requires no GPS, Wi-Fi, Bluetooth, or expensive hardware, and is instantly accessible via a simple QR code scan.
 
 Tech Stack (purely software based)
 
@@ -20,10 +22,10 @@ Libraries & Tools: NumPy, heapq, os, Flask-Cors
 
 Implementation Overview
 
-1. Scan a QR code at the building entrance.
-2. Instantly opens the web-based navigation page
-3. User inputs their current location and destination by room name.
-4. The shortest path is highlighted on the floorplan using the A* algorithm.
+- Scan a QR code at the building entrance.
+- Instantly opens the web-based navigation page
+- User inputs their current location and destination by room name.
+- The shortest path is highlighted on the floorplan using the A* algorithm.
 
 Detailed Workflow
 
@@ -43,10 +45,7 @@ Step 3: A* Pathfinding Algorithm
 
 
 Demo Screenshots
-
-
-🔗 Try It Out
-https://code-crew-mocha.vercel.app/
-
+- Webpage    : https://drive.google.com/file/d/1DX2nTTqbmqhnpydGPgLANhRDrWr6S_CD/view?usp=sharing
+- Path shown : https://drive.google.com/file/d/10koyhAOBXC5hbh5RCARQlF4dH6QkcIqj/view?usp=sharing
 
 
