@@ -7,10 +7,10 @@ S Priscilla Angeline
 Tania Sophy Jose
 
 Project: QRGo - Intuitive Indoor Navigation
-    * Problem: Navigating large indoor spaces (hospitals, campuses) is confusing without GPS, often relying on costly hardware (beacons) or inconvenient app installations.
-    * Our Solution:QRGo provides an accurate, app-free, browser-based indoor navigation system.
-    * How it Works: It uses a grid-based floorplan and the A* pathfinding algorithm for precise route calculation and visual guidance.
-    * Key Benefits: Requires no GPS, Wi-Fi, Bluetooth, or expensive hardware, and is instantly accessible via a simple QR code scan.
+     Problem: Navigating large indoor spaces (hospitals, campuses) is confusing without GPS, often relying on costly hardware (beacons) or inconvenient app installations.
+     Our Solution:QRGo provides an accurate, app-free, browser-based indoor navigation system.
+     How it Works: It uses a grid-based floorplan and the A* pathfinding algorithm for precise route calculation and visual guidance.
+     Key Benefits: Requires no GPS, Wi-Fi, Bluetooth, or expensive hardware, and is instantly accessible via a simple QR code scan.
 
 Tech Stack (purely software based)
 
@@ -18,7 +18,7 @@ Languages Used: Python, JavaScript, HTML, CSS
 Frameworks Used: Flask 
 Libraries & Tools: NumPy, heapq, os, Flask-Cors 
 
-🔁 Implementation Overview
+Implementation Overview
 
 1. Scan a QR code at the building entrance.
 2. Instantly opens the web-based navigation page
