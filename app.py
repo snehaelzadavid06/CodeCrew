@@ -99,4 +99,4 @@ if __name__ == '__main__':
     #             **REMEMBER TO CHANGE debug=False FOR A REAL, DEPLOYED APPLICATION.**
     # port=5000: The server will listen on port 5000. You will access it in your browser at http://127.0.0.1:5000 (or http://localhost:5000).
     import os
-    app.run(debug=os.getenv(DEBUG_VALUE), port=5000)
+    app.run(debug=False, port=5000)
