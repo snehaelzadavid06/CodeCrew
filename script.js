@@ -1,5 +1,5 @@
 // Constants
-const API_BASE_URL = ProcessingInstruction.env.API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:5000/api';
 const canvas = document.getElementById('floorPlanCanvas');
 const ctx = canvas.getContext('2d');
 const GRID_SIZE_X = 60;
