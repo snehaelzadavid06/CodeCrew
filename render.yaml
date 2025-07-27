@@ -7,9 +7,8 @@ services:
       apt-get install -y portaudio19-dev python3-dev pkg-config
       pip install --upgrade pip
       pip install wheel
-      pip install PyAudio
       pip install -r requirements.txt
     startCommand: python app.py
     envVars:
       - key: PYTHON_VERSION
-        value: 3.13
+        value: 3.10
