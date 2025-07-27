@@ -195,82 +195,61 @@ function drawPath(path, startCoords, endCoords) {
     ctx.stroke();
 }
 
-// Voice Recognition
+// Voice Recognition using Web Speech API
 function startVoiceInput(inputId) {
-    if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+    // Check browser support for Web Speech API
+    if (!('webkitSpeechRecognition' in window)) {
         showMessage('Speech recognition is not supported in your browser. Please use Chrome or Edge.', 'error');
         return;
     }
 
     const button = event.target;
-    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    const recognition = new webkitSpeechRecognition();
     
     button.classList.add('recording');
     
+    // Configure recognition
     recognition.lang = 'en-US';
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.maxAlternatives = 3;
 
-    let speechDetected = false;
-    let recognitionEnded = false;
-
+    // Handle results
     recognition.onresult = (event) => {
-        if (recognitionEnded) return;
+        const text = event.results[0][0].transcript.toLowerCase();
+        console.log('Recognized text:', text);
         
-        speechDetected = true;
-        recognitionEnded = true;
-        const results = event.results[0];
-        let matchFound = false;
+        // Find matching room
+        const matchingRoom = allRooms.find(room => 
+            text.includes(room.toLowerCase())
+        );
 
-        for (let i = 0; i < results.length && !matchFound; i++) {
-            const text = results[i].transcript.toLowerCase();
-            console.log(`Attempt ${i + 1} recognized text:`, text);
-            
-            for (const room of allRooms) {
-                if (text.includes(room.toLowerCase())) {
-                    document.getElementById(inputId).value = room;
-                    showMessage(`Recognized: ${room}`, 'success');
-                    matchFound = true;
-                    break;
-                }
-            }
+        if (matchingRoom) {
+            document.getElementById(inputId).value = matchingRoom;
+            showMessage(`Recognized: ${matchingRoom}`, 'success');
+        } else {
+            showMessage(`Could not find a matching room in: "${text}". Please try again.`, 'error');
         }
 
-        if (!matchFound) {
-            showMessage(`Could not find a matching room in: "${results[0].transcript}". Please try again.`, 'error');
-        }
-
-        try {
-            recognition.abort();
-        } catch (e) {
-            console.log('Recognition already stopped');
-        }
+        button.classList.remove('recording');
     };
 
+    // Handle errors
     recognition.onerror = (event) => {
-        if (recognitionEnded) return;
-        
         console.error('Speech recognition error:', event.error);
-        if (!speechDetected && !recognitionEnded) {
-            if (event.error === 'not-allowed') {
-                showMessage('Microphone access denied. Please allow microphone access and try again.', 'error');
-            } else if (event.error === 'no-speech' && !speechDetected) {
-                showMessage('No speech was detected. Please try again.', 'error');
-            }
-        }
-    };
-
-    recognition.onend = () => {
-        if (!recognitionEnded) {
-            recognitionEnded = true;
-            if (!speechDetected) {
-                showMessage('No speech was detected. Please try again.', 'error');
-            }
+        if (event.error === 'not-allowed') {
+            showMessage('Microphone access denied. Please allow microphone access and try again.', 'error');
+        } else if (event.error === 'no-speech') {
+            showMessage('No speech was detected. Please try again.', 'error');
         }
         button.classList.remove('recording');
     };
 
+    // Handle end of recognition
+    recognition.onend = () => {
+        button.classList.remove('recording');
+    };
+
+    // Start recognition
     try {
         recognition.start();
         showMessage('Listening... Please speak the room name.', 'success');
